@@ -1,17 +1,17 @@
-const path = require('path');
-const webpack = require('webpack');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const package = require('./package.json');
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const path = require("path");
+const webpack = require("webpack");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const package = require("./package.json");
+const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 
 let config = {
     // 入口
     entry: {
-        Recorder: path.resolve(__dirname, 'src/index.ts'),
+        Recorder: path.resolve(__dirname, "src/index.ts"),
     },
-    devtool: 'source-map',
+    devtool: "source-map",
     devServer: {
-        contentBase: './src'
+        contentBase: "./src",
     },
     output: {
         // 输出文件名
@@ -21,57 +21,62 @@ let config = {
             return `${firstLower(chunkData.chunk.name)}.js`;
         },
         // 输出路径
-        path: path.resolve(__dirname, 'dist'),
-        libraryExport: 'default',
-        library: '[name]',
-        globalObject: 'this',
-        libraryTarget: 'umd'
+        path: path.resolve(__dirname, "dist"),
+        libraryExport: "default",
+        library: "[name]",
+        globalObject: "this",
+        libraryTarget: "umd",
     },
     module: {
-        unknownContextCritical : false,
-        rules:[{
-            test: /\.tsx?$/,
-            use: 'ts-loader',
-            exclude: /node_modules/
-        }]
+        unknownContextCritical: false,
+        rules: [
+            {
+                test: /\.worker\.js$/,
+                use: { loader: "worker-loader" },
+            },
+            {
+                test: /\.tsx?$/,
+                use: "ts-loader",
+                exclude: /node_modules/,
+            },
+        ],
     },
     resolve: {
-        extensions: ['.js', '.ts', '.json'],
+        extensions: [".js", ".ts", ".json"],
     },
     plugins: [
         // 文件注释插件
         new webpack.BannerPlugin(`
-${ package.name } - ${ package.description }
+${package.name} - ${package.description}
 
-@version v${ package.version }
-@homepage ${ package.homepage }
-@author ${ package.author } <echoweb@126.com> (https://www.zhuyuntao.cn)
-@license ${ package.license }
+@version v${package.version}
+@homepage ${package.homepage}
+@author ${package.author} <echoweb@126.com> (https://www.zhuyuntao.cn)
+@license ${package.license}
         `),
-        new CleanWebpackPlugin()
+        new CleanWebpackPlugin(),
     ],
 };
 
 module.exports = (env, argv) => {
-    if (argv.mode === 'development') {
-
+    if (argv.mode === "development") {
         // 移动端下增加 vconsole 调试
-        config.entry.vconsole = path.resolve(__dirname, 'example/vconsole.ts');
+        config.entry.vconsole = path.resolve(__dirname, "example/vconsole.ts");
         // 开发模式下增加 example
-        config.entry.example = path.resolve(__dirname, 'example/example.ts');
+        config.entry.example = path.resolve(__dirname, "example/example.ts");
 
         // 开发模式下才要用到html
         config.plugins.push(
             new HtmlWebpackPlugin({
-                template: path.resolve(__dirname, 'example/example.html'),
-                filename: 'index.html'
-            }
-        ));
+                template: path.resolve(__dirname, "example/example.html"),
+                filename: "index.html",
+            })
+        );
     }
 
     return config;
-}
+};
 
 function firstLower(str) {
-    return str.substring(0, 1).toLowerCase() + str.substring(1)
+    return str.substring(0, 1).toLowerCase() + str.substring(1);
 }

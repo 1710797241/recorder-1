@@ -23,6 +23,10 @@ let config = {
                 use: ["style-loader", "css-loader"],
             },
             {
+                test: /\.worker\.js$/,
+                use: { loader: "worker-loader" },
+            },
+            {
                 test: /\.tsx?$/,
                 use: "ts-loader",
                 exclude: /node_modules/,
