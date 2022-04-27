@@ -18,6 +18,7 @@ export default class Recorder {
     protected config: recorderConfig;               // 配置
     private analyser: any;
     private size: number = 0;                       // 录音文件总长度
+    private lChannelData:any = []
     private lBuffer: Array<Float32Array> = [];      // pcm音频数据搜集器(左声道)
     private rBuffer: Array<Float32Array> = [];      // pcm音频数据搜集器(右声道)
     private PCM: any;                               // 最终的PCM数据缓存，避免多次encode
@@ -41,6 +42,7 @@ export default class Recorder {
         duration: number,
         fileSize: number,
         vol: number,
+        lChannelData:any
         // data: Array<DataView>,      // 当前存储的所有录音数据
     }) => void;
     public onplay: () => void;                  // 音频播放回调
@@ -256,6 +258,7 @@ export default class Recorder {
 
         // 音频采集
         this.recorder.onaudioprocess = e => {
+            
             if (!this.needRecord) {
                 return;
             }
@@ -264,11 +267,11 @@ export default class Recorder {
             let lData = e.inputBuffer.getChannelData(0),
                 rData = null,
                 vol = 0;        // 音量百分比
-
+            this.lChannelData.push(lData);
             this.lBuffer.push(new Float32Array(lData));
 
             this.size += lData.length;
-
+            console.log(e,'音频采集e',lData)
             // 判断是否有右声道数据
             if (2 === this.config.numChannels) {
                 rData = e.inputBuffer.getChannelData(1);
@@ -303,6 +306,7 @@ export default class Recorder {
                 duration: this.duration,
                 fileSize: this.fileSize,
                 vol,
+                lChannelData: this.lChannelData
                 // data: this.tempPCM,     // 当前所有的pcm数据，调用者控制增量
             });
         }

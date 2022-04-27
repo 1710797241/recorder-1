@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, Container, Statistic, Form, Divider, Checkbox, Segment } from 'semantic-ui-react';
 
 import Recorder from '../src/index';
-const lamejs = require('lamejs')
+const lamejs = require('lamejstmp')
 
 import { encodeWAV } from '../src/transform/transform';
 import Player from '../src/player/player';
@@ -10,6 +10,8 @@ import Player from '../src/player/player';
 import Translate from './components/Application/Translate/Translate';
 
 import 'semantic-ui-css/semantic.min.css';
+
+
 
 declare let OggVorbisEncoder: any;
 
@@ -119,6 +121,7 @@ class App extends React.Component {
             }
 
             recorder.onprogress = (params) => {
+                console.log("监听语音过程",params)
                 // console.log(recorder.duration);
                 // console.log(recorder.fileSize);
 
@@ -413,6 +416,14 @@ class App extends React.Component {
     public render() {
         return (
             <Container className="App" style={{ margin: '20px 0' }}>
+                {/* <audio src={mp3}>
+                    
+                </audio> */}
+                <div>
+                <audio src={require('./assets/recorder.wav')}>
+                    
+                    </audio>
+                </div>
                 <Form>
                     <Form.Group widths='equal'>
                         <Form.Select
