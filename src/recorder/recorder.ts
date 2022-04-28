@@ -24,7 +24,7 @@ export default class Recorder {
     private PCM: any; // 最终的PCM数据缓存，避免多次encode
     private tempPCM: Array<DataView> = []; // 边录边转时临时存放pcm的
     private currentWorker: any;
-    private isWorker: Boolean; //是否采用worker进行边录边转
+    private isWorker: Boolean = false; //是否采用worker进行边录边转
     private audioInput: any;
     protected inputSampleRate: number; // 输入采样率
     protected inputSampleBits: number = 16; // 输入采样位数
@@ -67,12 +67,17 @@ export default class Recorder {
 
         //是否启用webworker
         if (options.compiling) {
+            this.isWorker = options.compiling
             this.currentWorker = new transWorker();
+            console.log("启用worker");
+            
             this.currentWorker.onmessage = (e: any) => {
                 // 边录边转处理
                 let { pcm } = e.data;
-                this.PCM.push.apply(this.PCM, pcm);
+                console.log("得到的数据",pcm)
+                
                 this.tempPCM.push(pcm);
+                console.log('多个音频片段待合并',this.tempPCM)
                 // 计算录音大小
                 this.fileSize = pcm.byteLength * this.tempPCM.length;
             };
@@ -234,8 +239,42 @@ export default class Recorder {
      * @returns  {float32array}     音频pcm二进制数据
      * @memberof Recorder
      */
-    private flat() {
-        let lData = null,
+    private flat(lBuffer:Array<Float32Array>  = [],rBuffer:Array<Float32Array> = [],size:number = 0) {
+        if(size){
+            console.log("二维转一维度")
+            let lData = null,
+            rData = new Float32Array(0); // 右声道默认为0
+
+        // 创建存放数据的容器
+        if (1 === this.config.numChannels) {
+            lData = new Float32Array(this.size);
+        } else {
+            lData = new Float32Array(this.size / 2);
+            rData = new Float32Array(this.size / 2);
+        }
+        // 合并
+        let offset = 0; // 偏移量计算
+
+        // 将二维数据，转成一维数据
+        // 左声道
+        for (let i = 0; i < lBuffer.length; i++) {
+            lData.set(lBuffer[i], offset);
+            offset += lBuffer[i].length;
+        }
+
+        offset = 0;
+        // 右声道
+        for (let i = 0; i < rBuffer.length; i++) {
+            rData.set(rBuffer[i], offset);
+            offset += rBuffer[i].length;
+        }
+
+        return {
+            left: lData,
+            right: rData,
+        };
+        }else{
+            let lData = null,
             rData = new Float32Array(0); // 右声道默认为0
 
         // 创建存放数据的容器
@@ -266,7 +305,10 @@ export default class Recorder {
             left: lData,
             right: rData,
         };
+        }
+       
     }
+    
 
     /**
      * 初始化录音实例
@@ -303,15 +345,19 @@ export default class Recorder {
                 vol = 0; // 音量百分比
             this.lChannelData.push(lData);
             this.lBuffer.push(new Float32Array(lData));
-
+            let currentDataSize = lData.length;
+            let currentLeftBuffer:Array<Float32Array> = [];
+            currentLeftBuffer.push(new Float32Array(lData))
+            let currentRightBuffer :Array<Float32Array>= [];
             this.size += lData.length;
-            console.log(e, "音频采集e", lData);
+            // console.log(e, "音频采集e", lData);
             // 判断是否有右声道数据
             if (2 === this.config.numChannels) {
                 rData = e.inputBuffer.getChannelData(1);
                 this.rBuffer.push(new Float32Array(rData));
-
+                currentRightBuffer.push(new Float32Array(rData))
                 this.size += rData.length;
+                currentDataSize +=rData.length;
             }
             let config = {
                 inputSampleRate: this.inputSampleRate,
@@ -319,10 +365,10 @@ export default class Recorder {
                 oututSampleBits: this.oututSampleBits,
                 littleEdian: this.littleEdian,
             };
+
             if (this.isWorker) {
                 this.currentWorker.postMessage({
-                    lData,
-                    rData,
+                    audioData:this.flat(currentLeftBuffer,currentRightBuffer,currentDataSize),
                     config,
                 });
             }
@@ -336,7 +382,8 @@ export default class Recorder {
             //     this.fileSize = pcm.byteLength * this.tempPCM.length;
             // } else {
             // 计算录音大小
-            this.fileSize =
+            if(!this.config.compiling){
+                this.fileSize =
                 Math.floor(
                     this.size /
                         Math.max(
@@ -345,6 +392,8 @@ export default class Recorder {
                         )
                 ) *
                 (this.oututSampleBits / 8);
+            }
+            
             // }
             // 为何此处计算大小需要分开计算。原因是先录后转时，是将所有数据一起处理，边录边转是单个 4096 处理，
             // 有小数位的偏差。
@@ -461,6 +510,6 @@ export default class Recorder {
      *
      */
     protected getEncodedPCM() {
-        return this.PCM || [];
+        return this.PCM ;
     }
 }

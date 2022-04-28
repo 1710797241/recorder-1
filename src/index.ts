@@ -329,7 +329,7 @@ class Index extends Recorder {
      * @memberof Recorder
      */
     getMP3Blob(): any {
-        return new Blob([this.getMP3()], { type: "audio/mp3" });
+        return new Blob(this.getMP3(), { type: "audio/mp3" });
     }
 
     /**
