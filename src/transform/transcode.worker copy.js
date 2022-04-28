@@ -1,9 +1,25 @@
 (function () {
     self.onmessage = function (e) {
-        transAudioData.transcode(e.data);
+        // transAudioData.transcode(e.data);
+        console.log(e, "receive from user onmessage");
+        transAudioData.logInfo(e);
     };
 
+    interface dataview {
+        byteLength: number;
+        buffer: {
+            byteLength: number,
+        };
+        getUint8: any;
+    }
+
     let transAudioData = {
+        logInfo(data) {
+            console.log("loginfo", data);
+            self.postMessage({
+                type: "send from worker.js",
+            });
+        },
         transcode(audioData) {
             let output = transAudioData.to16kHz(audioData);
             output = transAudioData.to16BitPCM(output);
@@ -19,7 +35,7 @@
             newData[0] = data[0];
             for (let i = 1; i < fitCount - 1; i++) {
                 var tmp = i * springFactor;
-                var before = Math.floor(tmp).toFixed();
+                var before: any = Math.floor(tmp).toFixed();
                 var after = Math.ceil(tmp).toFixed();
                 var atPoint = tmp - before;
                 newData[i] =

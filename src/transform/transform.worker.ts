@@ -1,4 +1,15 @@
 const lamejs = require("lamejstmp");
+const _self: Worker = self as any;
+_self.onmessage = function (e) {
+    let { audioData, config } = e.data;
+    let compressData = compress(
+        audioData,
+        config.inputSampleRate,
+        config.outputSampleRate
+    );
+    let pcm = encodePCM(compressData, config.sampleBits, config.littleEdian);
+    _self.postMessage(pcm);
+};
 interface dataview {
     byteLength: number;
     buffer: {
@@ -30,11 +41,7 @@ function writeString(data, offset, str): void {
  * @param {number} outputSampleRate 输出采样率
  * @returns  {float32array}         压缩处理后的二进制数据
  */
-export function compress(
-    data,
-    inputSampleRate: number,
-    outputSampleRate: number
-) {
+function compress(data, inputSampleRate: number, outputSampleRate: number) {
     // 压缩，根据采样率进行压缩
     let rate = inputSampleRate / outputSampleRate,
         compression = Math.max(rate, 1),
@@ -77,11 +84,7 @@ export function compress(
  * @param {boolean} littleEdian     是否是小端字节序
  * @returns {dataview}              pcm二进制数据
  */
-export function encodePCM(
-    bytes,
-    sampleBits: number,
-    littleEdian: boolean = true
-) {
+function encodePCM(bytes, sampleBits: number, littleEdian: boolean = true) {
     let offset = 0,
         dataLength = bytes.length * (sampleBits / 8),
         buffer = new ArrayBuffer(dataLength),
@@ -122,7 +125,7 @@ export function encodePCM(
  * @param {boolean} littleEdian      是否是小端字节序
  * @returns {DataView}               wav二进制数据
  */
-export function encodeWAV(
+function encodeWAV(
     bytes: dataview,
     inputSampleRate: number,
     outputSampleRate: number,
@@ -204,7 +207,7 @@ export function encodeWAV(
  * @param {boolean} littleEdian      是否是小端字节序
  */
 
-export function encodeMP3(
+function encodeMP3(
     result: any,
     inputSampleRate: number,
     outputSampleRate: number,
@@ -258,3 +261,5 @@ export function encodeMP3(
 
     return buffer;
 }
+
+export default null as any; // 默认导出以免爆 **.worker.ts is not a module 这样的错误

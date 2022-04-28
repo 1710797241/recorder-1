@@ -1,7 +1,12 @@
-import { downloadPCM, downloadWAV, download } from './download/download';
-import { compress, encodePCM, encodeWAV } from './transform/transform';
-import Player from './player/player';
-import Recorder from './recorder/recorder';
+import { downloadPCM, downloadWAV, download } from "./download/download";
+import {
+    compress,
+    encodeMP3,
+    encodePCM,
+    encodeWAV,
+} from "./transform/transform";
+import Player from "./player/player";
+import Recorder from "./recorder/recorder";
 
 declare let window: any;
 declare let Math: any;
@@ -10,22 +15,23 @@ declare let Promise: any;
 
 // 构造函数参数格式
 interface recorderConfig {
-    sampleBits?: number,        // 采样位数
-    sampleRate?: number,        // 采样率
-    numChannels?: number,       // 声道数
-    compiling?: boolean,        // 是否边录边播
+    sampleBits?: number; // 采样位数
+    sampleRate?: number; // 采样率
+    numChannels?: number; // 声道数
+    compiling?: boolean; // 是否边录边播
 }
 
 class Index extends Recorder {
-    private isrecording: boolean = false;       // 是否正在录音
-    private ispause: boolean = false;           // 是否是暂停
-    private isplaying: boolean = false;         // 是否正在播放
+    private isrecording: boolean = false; // 是否正在录音
+    private ispause: boolean = false; // 是否是暂停
+    private isplaying: boolean = false; // 是否正在播放
 
-    public onplay: () => void;                  // 音频播放回调
-    public onpauseplay: () => void;             // 音频暂停回调
-    public onresumeplay: () => void;            // 音频恢复播放回调
-    public onstopplay: () => void;              // 音频停止播放回调
-    public onplayend: () => void;               // 音频正常播放结束
+    public onplay: () => void; // 音频播放回调
+    public onpauseplay: () => void; // 音频暂停回调
+    public onresumeplay: () => void; // 音频恢复播放回调
+    public onstopplay: () => void; // 音频停止播放回调
+    public onplayend: () => void; // 音频正常播放结束
+    public interval: NodeJS.Timer;
     /**
      * @param {Object} options 包含以下三个参数：
      * sampleBits，采样位数，一般8,16，默认16
@@ -103,12 +109,12 @@ class Index extends Recorder {
         this.isplaying = true;
 
         this.onplay && this.onplay();
-        Player.addPlayEnd(this.onplayend);  // 注册播放完成后的回调事件
+        Player.addPlayEnd(this.onplayend); // 注册播放完成后的回调事件
 
         const dataV = this.getWAV();
 
         if (dataV.byteLength > 44) {
-            Player.play(dataV.buffer);  // 播放
+            Player.play(dataV.buffer); // 播放
         }
     }
 
@@ -221,6 +227,10 @@ class Index extends Recorder {
     getPCM(): any {
         // 先停止
         this.stop();
+        //边录边转
+        if (this.getEncodedPCM().length) {
+            return this.getEncodedPCM();
+        }
         // 获取pcm数据
         let data: any = this.getData();
         // 根据输入输出比例 压缩或扩展
@@ -236,7 +246,7 @@ class Index extends Recorder {
      * @memberof Recorder
      */
     getPCMBlob(): any {
-        return new Blob([ this.getPCM() ]);
+        return new Blob([this.getPCM()]);
     }
 
     /**
@@ -245,7 +255,7 @@ class Index extends Recorder {
      * @param {string} [name='recorder']    重命名的名字
      * @memberof Recorder
      */
-    downloadPCM(name: string = 'recorder'): void {
+    downloadPCM(name: string = "recorder"): void {
         let pcmBlob = this.getPCMBlob();
 
         downloadPCM(pcmBlob, name);
@@ -261,8 +271,14 @@ class Index extends Recorder {
         let pcmTemp = this.getPCM();
 
         // PCM增加44字节的头就是WAV格式了
-        return encodeWAV(pcmTemp, this.inputSampleRate,
-            this.outputSampleRate, this.config.numChannels, this.oututSampleBits, this.littleEdian);;
+        return encodeWAV(
+            pcmTemp,
+            this.inputSampleRate,
+            this.outputSampleRate,
+            this.config.numChannels,
+            this.oututSampleBits,
+            this.littleEdian
+        );
     }
 
     /**
@@ -272,7 +288,7 @@ class Index extends Recorder {
      * @memberof Recorder
      */
     getWAVBlob(): any {
-        return new Blob([ this.getWAV() ], { type: 'audio/wav' });
+        return new Blob([this.getWAV()], { type: "audio/wav" });
     }
 
     /**
@@ -281,10 +297,51 @@ class Index extends Recorder {
      * @param {string} [name='recorder']    重命名的名字
      * @memberof Recorder
      */
-    downloadWAV(name: string = 'recorder'): void {
+    downloadWAV(name: string = "recorder"): void {
         let wavBlob = this.getWAVBlob();
 
         downloadWAV(wavBlob, name);
+    }
+
+    /**
+     * 获取MP3编码的二进制数据(dataview)
+     *
+     * @returns {dataview}  WAV编码的二进制数据
+     * @memberof Recorder
+     */
+    getMP3(): any {
+        let pcmTemp = this.getChannelData();
+
+        return encodeMP3(
+            pcmTemp,
+            this.inputSampleRate,
+            this.outputSampleRate,
+            this.config.numChannels,
+            this.oututSampleBits,
+            this.littleEdian
+        );
+    }
+
+    /**
+     * 获取WAV音频的blob数据
+     *
+     * @returns { blob }  MP3格式blob数据
+     * @memberof Recorder
+     */
+    getMP3Blob(): any {
+        return new Blob([this.getMP3()], { type: "audio/mp3" });
+    }
+
+    /**
+     * 下载录音的mp3数据
+     *
+     * @param {string} [name='recorder']    重命名的名字
+     * @memberof Recorder
+     */
+    downloadMP3(name: string = "recorder"): void {
+        let wavBlob = this.getMP3Blob();
+
+        download(wavBlob, name, "mp3");
     }
 
     /**
@@ -302,35 +359,43 @@ class Index extends Recorder {
     getChannelData(): any {
         const all = this.getPCM();
         const length = all.byteLength;
-        const littleEdian = this.littleEdian
-        const res = { left: null, right: null }
+        const littleEdian = this.littleEdian;
+        const res = { left: null, right: null };
 
         if (this.config.numChannels === 2) {
             // 双通道,劈开
-            const lD = new DataView(new ArrayBuffer(length / 2))
-            const rD = new DataView(new ArrayBuffer(length / 2))
+            const lD = new DataView(new ArrayBuffer(length / 2));
+            const rD = new DataView(new ArrayBuffer(length / 2));
             // 双声道，需要拆分下数据
 
             if (this.config.sampleBits === 16) {
                 for (var i = 0; i < length / 2; i += 2) {
-                    lD.setInt16(i, all.getInt16(i * 2, littleEdian), littleEdian)
-                    rD.setInt16(i, all.getInt16(i * 2 + 2, littleEdian), littleEdian)
+                    lD.setInt16(
+                        i,
+                        all.getInt16(i * 2, littleEdian),
+                        littleEdian
+                    );
+                    rD.setInt16(
+                        i,
+                        all.getInt16(i * 2 + 2, littleEdian),
+                        littleEdian
+                    );
                 }
             } else {
                 for (var i = 0; i < length / 2; i += 2) {
-                    lD.setInt8(i, all.getInt8(i * 2))
-                    rD.setInt8(i, all.getInt8(i * 2 + 1))
+                    lD.setInt8(i, all.getInt8(i * 2));
+                    rD.setInt8(i, all.getInt8(i * 2 + 1));
                 }
             }
 
-            res.left = lD
-            res.right = rD
+            res.left = lD;
+            res.right = rD;
         } else {
             // 单通道
-            res.left = all
+            res.left = all;
         }
 
-        return res
+        return res;
     }
 }
 
