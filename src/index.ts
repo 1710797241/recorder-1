@@ -228,7 +228,7 @@ class Index extends Recorder {
         // 先停止
         this.stop();
         //边录边转
-        if (this.getEncodedPCM().length) {
+        if (this.getEncodedPCM()) {
             return this.getEncodedPCM();
         }
         // 获取pcm数据
