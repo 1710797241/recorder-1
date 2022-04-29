@@ -1,16 +1,20 @@
 const lamejs = require("lamejstmp");
 const _self: Worker = self as any;
 _self.onmessage = function (e) {
-    console.log('边录制边转',e)
+    console.log("边录制边转", e);
     let { audioData, config } = e.data;
     let compressData = compress(
         audioData,
         config.inputSampleRate,
         config.outputSampleRate
     );
-    console.log('compressData',compressData)
-    let pcm = encodePCM(compressData, config.oututSampleBits, config.littleEdian);
-    _self.postMessage({pcm});
+    console.log("compressData", compressData);
+    let pcm = encodePCM(
+        compressData,
+        config.oututSampleBits,
+        config.littleEdian
+    );
+    _self.postMessage({ pcm });
 };
 interface dataview {
     byteLength: number;
@@ -91,7 +95,6 @@ function encodePCM(bytes, sampleBits: number, littleEdian: boolean = true) {
         dataLength = bytes.length * (sampleBits / 8),
         buffer = new ArrayBuffer(dataLength),
         data = new DataView(buffer);
-        // console.log('encodePCM ========bytes',bytes,'bytes.length',bytes.length,'sampleBits',sampleBits,'dataLength',dataLength,'buffer',buffer)
 
     // 写入采样数据
     if (sampleBits === 8) {

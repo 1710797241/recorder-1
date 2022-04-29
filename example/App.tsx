@@ -428,7 +428,69 @@ class App extends React.Component {
         });
     };
 
+    mergeDataView = (arr) => {
+        let allLen = 0;
+        for (let i = 0; i < arr.length; i++) {
+            allLen += arr[i].byteLength;
+        }
+        let buffer = new ArrayBuffer(allLen);
+        let view = new DataView(buffer);
+        let offset = 0;
+        for (let i = 0; i < arr.length; i++) {
+            for (let j = 0; j < arr[i].byteLength; j += 2, offset += 2) {
+                view.setInt16(offset, arr[i].getInt16(j));
+            }
+        }
+        return view;
+    };
     componentDidMount() {
+        let buffer = new ArrayBuffer(10 * 2);
+        let view = new DataView(buffer);
+        let offset = 0;
+        // view.setInt8(0, 1);
+        // view.setInt8(2, 1);
+        for (let i = 0; i < 10; i++, offset += 2) {
+            let s = Math.max(-1, Math.min(1, Math.random()));
+            // 16位的划分的是2^16=65536份，范围是-32768到32767
+
+            // 因为我们收集的数据范围在[-1,1]，那么你想转换成16位的话，只需要对负数*32768,对正数*32767,即可得到范围在[-32768,32767]的数据。
+            s = s < 0 ? s * 0x8000 : s * 0x7fff;
+            console.log(offset, "offset", s, "s");
+            view.setInt16(offset, s, false);
+        }
+        let buffer2 = new ArrayBuffer(10 * 2);
+        let view2 = new DataView(buffer2);
+        let offset2 = 0;
+        console.log("=======view2========");
+
+        for (let i = 0; i < 10; i++, offset2 += 2) {
+            let s = Math.max(-1, Math.min(1, Math.random()));
+            // 16位的划分的是2^16=65536份，范围是-32768到32767
+
+            // 因为我们收集的数据范围在[-1,1]，那么你想转换成16位的话，只需要对负数*32768,对正数*32767,即可得到范围在[-32768,32767]的数据。
+            s = s < 0 ? s * 0x8000 : s * 0x7fff;
+            console.log(offset2, "offset", s, "s");
+            view2.setInt16(offset2, s, false);
+        }
+        let dataView = this.mergeDataView([view, view2]);
+
+        console.log(
+            "buffer",
+            buffer,
+            "view",
+            view,
+            "view2",
+            view2,
+            "getInt6 0 2 :======",
+            view.getInt16(0),
+
+            view.getInt16(2),
+            view2.getInt16(0),
+
+            view2.getInt16(2),
+            "dataView",
+            dataView
+        );
         oCanvas = document.getElementById("canvas");
         ctx = oCanvas.getContext("2d");
         pCanvas = document.getElementById("playChart");
@@ -474,7 +536,6 @@ class App extends React.Component {
                     <Form.Field>
                         <Checkbox
                             label="边录边转(播)"
-                            
                             checked={this.state.compiling}
                             toggle
                             onChange={this.changeCompile}

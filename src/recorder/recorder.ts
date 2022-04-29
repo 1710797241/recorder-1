@@ -67,17 +67,17 @@ export default class Recorder {
 
         //是否启用webworker
         if (options.compiling) {
-            this.isWorker = options.compiling
+            this.isWorker = options.compiling;
             this.currentWorker = new transWorker();
             console.log("启用worker");
-            
+
             this.currentWorker.onmessage = (e: any) => {
                 // 边录边转处理
                 let { pcm } = e.data;
-                console.log("得到的数据",pcm)
-                
+                console.log("得到的数据", pcm);
+
                 this.tempPCM.push(pcm);
-                console.log('多个音频片段待合并',this.tempPCM)
+                console.log("多个音频片段待合并", this.tempPCM);
                 // 计算录音大小
                 this.fileSize = pcm.byteLength * this.tempPCM.length;
             };
@@ -239,76 +239,78 @@ export default class Recorder {
      * @returns  {float32array}     音频pcm二进制数据
      * @memberof Recorder
      */
-    private flat(lBuffer:Array<Float32Array>  = [],rBuffer:Array<Float32Array> = [],size:number = 0) {
-        if(size){
-            console.log("二维转一维度")
+    private flat(
+        lBuffer: Array<Float32Array> = [],
+        rBuffer: Array<Float32Array> = [],
+        size: number = 0
+    ) {
+        if (size) {
+            console.log("二维转一维度");
             let lData = null,
-            rData = new Float32Array(0); // 右声道默认为0
+                rData = new Float32Array(0); // 右声道默认为0
 
-        // 创建存放数据的容器
-        if (1 === this.config.numChannels) {
-            lData = new Float32Array(this.size);
+            // 创建存放数据的容器
+            if (1 === this.config.numChannels) {
+                lData = new Float32Array(this.size);
+            } else {
+                lData = new Float32Array(this.size / 2);
+                rData = new Float32Array(this.size / 2);
+            }
+            // 合并
+            let offset = 0; // 偏移量计算
+
+            // 将二维数据，转成一维数据
+            // 左声道
+            for (let i = 0; i < lBuffer.length; i++) {
+                lData.set(lBuffer[i], offset);
+                offset += lBuffer[i].length;
+            }
+
+            offset = 0;
+            // 右声道
+            for (let i = 0; i < rBuffer.length; i++) {
+                rData.set(rBuffer[i], offset);
+                offset += rBuffer[i].length;
+            }
+
+            return {
+                left: lData,
+                right: rData,
+            };
         } else {
-            lData = new Float32Array(this.size / 2);
-            rData = new Float32Array(this.size / 2);
-        }
-        // 合并
-        let offset = 0; // 偏移量计算
-
-        // 将二维数据，转成一维数据
-        // 左声道
-        for (let i = 0; i < lBuffer.length; i++) {
-            lData.set(lBuffer[i], offset);
-            offset += lBuffer[i].length;
-        }
-
-        offset = 0;
-        // 右声道
-        for (let i = 0; i < rBuffer.length; i++) {
-            rData.set(rBuffer[i], offset);
-            offset += rBuffer[i].length;
-        }
-
-        return {
-            left: lData,
-            right: rData,
-        };
-        }else{
             let lData = null,
-            rData = new Float32Array(0); // 右声道默认为0
+                rData = new Float32Array(0); // 右声道默认为0
 
-        // 创建存放数据的容器
-        if (1 === this.config.numChannels) {
-            lData = new Float32Array(this.size);
-        } else {
-            lData = new Float32Array(this.size / 2);
-            rData = new Float32Array(this.size / 2);
-        }
-        // 合并
-        let offset = 0; // 偏移量计算
+            // 创建存放数据的容器
+            if (1 === this.config.numChannels) {
+                lData = new Float32Array(this.size);
+            } else {
+                lData = new Float32Array(this.size / 2);
+                rData = new Float32Array(this.size / 2);
+            }
+            // 合并
+            let offset = 0; // 偏移量计算
 
-        // 将二维数据，转成一维数据
-        // 左声道
-        for (let i = 0; i < this.lBuffer.length; i++) {
-            lData.set(this.lBuffer[i], offset);
-            offset += this.lBuffer[i].length;
-        }
+            // 将二维数据，转成一维数据
+            // 左声道
+            for (let i = 0; i < this.lBuffer.length; i++) {
+                lData.set(this.lBuffer[i], offset);
+                offset += this.lBuffer[i].length;
+            }
 
-        offset = 0;
-        // 右声道
-        for (let i = 0; i < this.rBuffer.length; i++) {
-            rData.set(this.rBuffer[i], offset);
-            offset += this.rBuffer[i].length;
-        }
+            offset = 0;
+            // 右声道
+            for (let i = 0; i < this.rBuffer.length; i++) {
+                rData.set(this.rBuffer[i], offset);
+                offset += this.rBuffer[i].length;
+            }
 
-        return {
-            left: lData,
-            right: rData,
-        };
+            return {
+                left: lData,
+                right: rData,
+            };
         }
-       
     }
-    
 
     /**
      * 初始化录音实例
@@ -346,18 +348,18 @@ export default class Recorder {
             this.lChannelData.push(lData);
             this.lBuffer.push(new Float32Array(lData));
             let currentDataSize = lData.length;
-            let currentLeftBuffer:Array<Float32Array> = [];
-            currentLeftBuffer.push(new Float32Array(lData))
-            let currentRightBuffer :Array<Float32Array>= [];
+            let currentLeftBuffer: Array<Float32Array> = [];
+            currentLeftBuffer.push(new Float32Array(lData));
+            let currentRightBuffer: Array<Float32Array> = [];
             this.size += lData.length;
             // console.log(e, "音频采集e", lData);
             // 判断是否有右声道数据
             if (2 === this.config.numChannels) {
                 rData = e.inputBuffer.getChannelData(1);
                 this.rBuffer.push(new Float32Array(rData));
-                currentRightBuffer.push(new Float32Array(rData))
+                currentRightBuffer.push(new Float32Array(rData));
                 this.size += rData.length;
-                currentDataSize +=rData.length;
+                currentDataSize += rData.length;
             }
             let config = {
                 inputSampleRate: this.inputSampleRate,
@@ -368,7 +370,11 @@ export default class Recorder {
 
             if (this.isWorker) {
                 this.currentWorker.postMessage({
-                    audioData:this.flat(currentLeftBuffer,currentRightBuffer,currentDataSize),
+                    audioData: this.flat(
+                        currentLeftBuffer,
+                        currentRightBuffer,
+                        currentDataSize
+                    ),
                     config,
                 });
             }
@@ -382,18 +388,18 @@ export default class Recorder {
             //     this.fileSize = pcm.byteLength * this.tempPCM.length;
             // } else {
             // 计算录音大小
-            if(!this.config.compiling){
+            if (!this.config.compiling) {
                 this.fileSize =
-                Math.floor(
-                    this.size /
-                        Math.max(
-                            this.inputSampleRate / this.outputSampleRate,
-                            1
-                        )
-                ) *
-                (this.oututSampleBits / 8);
+                    Math.floor(
+                        this.size /
+                            Math.max(
+                                this.inputSampleRate / this.outputSampleRate,
+                                1
+                            )
+                    ) *
+                    (this.oututSampleBits / 8);
             }
-            
+
             // }
             // 为何此处计算大小需要分开计算。原因是先录后转时，是将所有数据一起处理，边录边转是单个 4096 处理，
             // 有小数位的偏差。
@@ -509,7 +515,37 @@ export default class Recorder {
      * 获取边录边转后最终的PCM
      *
      */
-    protected getEncodedPCM() {
-        return this.PCM ;
+    protected getEncodedPCM(): DataView | null {
+        if (this.PCM) {
+            return this.PCM;
+        } else if (this.tempPCM.length) {
+            let pcm = this.mergeDataView(this.tempPCM);
+            this.PCM = pcm;
+            return pcm;
+        } else {
+            return null;
+        }
     }
+    /**
+     * 合并多个pcm
+     */
+    private mergeDataView = (arr: Array<DataView>) => {
+        let allLen = 0;
+        for (let i = 0; i < arr.length; i++) {
+            allLen += arr[i].byteLength;
+        }
+        let buffer = new ArrayBuffer(allLen);
+        let view = new DataView(buffer);
+        let offset = 0;
+        for (let i = 0; i < arr.length; i++) {
+            for (let j = 0; j < arr[i].byteLength; j += 2, offset += 2) {
+                view.setInt16(
+                    offset,
+                    arr[i].getInt16(j, this.littleEdian),
+                    this.littleEdian
+                );
+            }
+        }
+        return view;
+    };
 }
